@@ -1,35 +1,35 @@
 import os
-import time
-import requests
 from prometheus_client import CollectorRegistry, Gauge, push_to_gateway
 
-# Environment variables or defaults
-GATEWAY = os.getenv("METRICS_URL", "https://your-prometheus-endpoint/api/v1/push")
-BEARER_TOKEN = os.getenv("GRAFANA_CLOUD_TOKEN", "your-token")
+# Load environment variables
+GATEWAY = os.environ.get("METRICS_URL")
+TOKEN = os.environ.get("GRAFANA_CLOUD_TOKEN")
+
+if not GATEWAY or not TOKEN:
+    raise ValueError("Environment variables METRICS_URL and GRAFANA_CLOUD_TOKEN must be set")
 
 registry = CollectorRegistry()
+g = Gauge('example_metric', 'Example metric pushed to Grafana Cloud', registry=registry)
+g.set(5.6)
 
-# Define a sample metric
-g = Gauge('app_response_time_seconds', 'Response time in seconds', registry=registry)
-g.set(0.42)
-
-# Define a handler that returns a callable (to fix the error)
-def bearer_handler(url, method, timeout, headers, data):
+# Correct handler — returns the response (not calls it)
+def custom_handler(url, method, timeout, headers, data):
+    import requests
     response = requests.request(
         method=method,
         url=url,
-        timeout=timeout,
-        headers={k: v for (k, v) in headers} | {'Authorization': f"Bearer {BEARER_TOKEN}"},
-        data=data
+        headers=dict(headers + [('Authorization', f'Bearer {TOKEN}')] ),
+        data=data,
+        timeout=timeout
     )
-    return lambda: response  # This matches what `push_to_gateway` expects
+    if not response.ok:
+        raise Exception(f"Push failed: {response.status_code} {response.text}")
+    return response
 
-# Push the metrics
+# Push metrics
 push_to_gateway(
     GATEWAY,
-    job="perf-monitoring-suite",
+    job='my_push_job',
     registry=registry,
-    handler=bearer_handler,
+    handler=custom_handler
 )
-
-print(f"Pushed metrics to: {GATEWAY}")
