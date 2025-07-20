@@ -22,3 +22,9 @@ jobs:
 
       - name: Push metrics to Grafana Cloud
         run: python grafana/push_metrics.py
+
+      - name: Run Exporter
+  env:
+    GRAFANA_API_TOKEN: ${{ secrets.GRAFANA_API_TOKEN }}
+  run: python grafana/push_metrics.py
+
