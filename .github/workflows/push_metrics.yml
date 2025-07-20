@@ -2,29 +2,25 @@ name: Push Metrics
 
 on:
   schedule:
-    - cron: '*/5 * * * *'  # runs every 5 minutes
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
 
 jobs:
   push:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+      - uses: actions/checkout@v2
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: '3.x'
 
       - name: Install dependencies
-        run: pip install -r grafana/requirements.txt
+        run: pip install prometheus_client requests
 
       - name: Push metrics to Grafana Cloud
+        env:
+          GRAFANA_CLOUD_METRICS_URL: ${{ secrets.GRAFANA_CLOUD_METRICS_URL }}
+          GRAFANA_CLOUD_API_KEY: ${{ secrets.GRAFANA_CLOUD_API_KEY }}
         run: python grafana/push_metrics.py
-
-      - name: Run Exporter
-  env:
-    GRAFANA_API_TOKEN: ${{ secrets.GRAFANA_API_TOKEN }}
-  run: python grafana/push_metrics.py
-
