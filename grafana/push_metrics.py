@@ -1,43 +1,32 @@
-# grafana/push_metrics.py
-
-from prometheus_client import Gauge, CollectorRegistry, push_to_gateway
-import random
-import time
 import os
+import random
+import requests
+from prometheus_client import CollectorRegistry, Gauge, push_to_gateway
 
-# Set your Grafana Cloud details
-PUSHGATEWAY = "https://prometheus-prod-01-eu-west-0.grafana.net/api/prom/push"
-JOB_NAME = "lrc-jmeter"
-BEARER_TOKEN = os.getenv("GRAFANA_API_TOKEN")
+# Load environment variables
+metrics_url = os.environ.get("GRAFANA_CLOUD_METRICS_URL")
+api_key = os.environ.get("GRAFANA_CLOUD_API_KEY")
 
-
-# Create a new registry for each push
+# Prepare registry and custom metrics
 registry = CollectorRegistry()
+tps = Gauge('jmeter_tps', 'Transactions per second from JMeter', registry=registry)
+sla = Gauge('lrc_sla_percentage', 'LRC SLA success percentage', registry=registry)
+response_time = Gauge('lrc_response_time_ms', 'Average response time in ms', registry=registry)
 
-# Define sample metrics
-sla = Gauge('lrc_sla_percentage', 'LRC SLA %', registry=registry)
-tps = Gauge('jmeter_tps', 'Transactions Per Second', registry=registry)
-resp_time = Gauge('jmeter_response_time_ms', 'Response Time (ms)', registry=registry)
-
-# Generate dummy data
-sla.set(random.uniform(95.0, 100.0))
-tps.set(random.uniform(50, 120))
-resp_time.set(random.uniform(300, 1200))
+# Generate dummy values for demo
+tps.set(random.uniform(10, 100))
+sla.set(random.uniform(90, 100))
+response_time.set(random.uniform(200, 800))
 
 # Push metrics
+print("Pushing metrics to:", metrics_url)
 push_to_gateway(
-    PUSHGATEWAY,
-    job=JOB_NAME,
+    gateway=metrics_url,
+    job='perf-monitoring',
     registry=registry,
-    handler=lambda url, method, timeout, headers, data: (
-        __import__('requests').request(
-            method,
-            url,
-            data=data,
-            headers={"Authorization": f"Bearer {BEARER_TOKEN}", **headers},
-            timeout=timeout,
-        )
-    )
+    handler=lambda url, method, timeout, headers, data: requests.request(
+        method, url, data=data, headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/x-www-form-urlencoded"
+        }, timeout=timeout)
 )
-
-print("✅ Pushed sample metrics to Grafana Cloud Prometheus.")
