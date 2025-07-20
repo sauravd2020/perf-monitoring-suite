@@ -3,8 +3,8 @@ from prometheus_client import CollectorRegistry, Gauge, push_to_gateway
 import requests
 
 # Get environment variables
-GATEWAY = os.getenv("METRICS_URL")
-TOKEN = os.getenv("GRAFANA_CLOUD_TOKEN")
+GATEWAY = os.getenv("GRAFANA_CLOUD_METRICS_URL")
+TOKEN = os.getenv("GRAFANA_CLOUD_API_KEY")
 
 if not GATEWAY or not TOKEN:
     raise ValueError("Both METRICS_URL and GRAFANA_CLOUD_TOKEN must be set")
