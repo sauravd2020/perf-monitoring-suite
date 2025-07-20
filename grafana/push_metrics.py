@@ -1,35 +1,37 @@
 import os
 from prometheus_client import CollectorRegistry, Gauge, push_to_gateway
+import requests
 
-# Load environment variables
-GATEWAY = os.environ.get("METRICS_URL")
-TOKEN = os.environ.get("GRAFANA_CLOUD_TOKEN")
+# Get environment variables
+GATEWAY = os.getenv("METRICS_URL")
+TOKEN = os.getenv("GRAFANA_CLOUD_TOKEN")
 
 if not GATEWAY or not TOKEN:
-    raise ValueError("Environment variables METRICS_URL and GRAFANA_CLOUD_TOKEN must be set")
+    raise ValueError("Both METRICS_URL and GRAFANA_CLOUD_TOKEN must be set")
 
-registry = CollectorRegistry()
-g = Gauge('example_metric', 'Example metric pushed to Grafana Cloud', registry=registry)
-g.set(5.6)
-
-# Correct handler — returns the response (not calls it)
-def custom_handler(url, method, timeout, headers, data):
-    import requests
+# Custom handler for Bearer Auth
+def bearer_auth_handler(url, method, timeout, headers, data):
     response = requests.request(
-        method=method,
-        url=url,
-        headers=dict(headers + [('Authorization', f'Bearer {TOKEN}')] ),
+        method,
+        url,
         data=data,
-        timeout=timeout
+        headers={key: value for key, value in headers},
+        timeout=timeout,
+        auth=None,
+        headers_override={"Authorization": f"Bearer {TOKEN}"}
     )
-    if not response.ok:
-        raise Exception(f"Push failed: {response.status_code} {response.text}")
-    return response
+    # Return a function to match expected callable signature
+    return lambda: response.raise_for_status()
+
+# Create a registry and metric
+registry = CollectorRegistry()
+g = Gauge('lrc_test_duration_seconds', 'Duration of LRC test run', registry=registry)
+g.set(5.2)  # Example value
 
 # Push metrics
 push_to_gateway(
     GATEWAY,
-    job='my_push_job',
+    job='lrc_performance_test',
     registry=registry,
-    handler=custom_handler
+    handler=bearer_auth_handler
 )
