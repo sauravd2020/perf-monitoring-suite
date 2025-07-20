@@ -1,5 +1,4 @@
 import os
-import time
 import requests
 from prometheus_client import CollectorRegistry, Gauge, push_to_gateway
 
@@ -9,25 +8,27 @@ api_key = os.environ["GRAFANA_CLOUD_API_KEY"]
 
 print("Pushing metrics to:", metrics_url)
 
-# Create registry and sample metric
+# Create Prometheus registry and metric
 registry = CollectorRegistry()
 g = Gauge('sample_lrc_test_latency_seconds', 'LRC latency in seconds', registry=registry)
-g.set(1.5)
+g.set(1.23)  # Example value
 
-# Define a custom handler for basic auth
+# Define a valid HTTP handler
 def bearer_auth_handler(url, method, timeout, headers, data):
-    return requests.request(
+    str_headers = {
+        key: str(value)  # Convert everything to string to avoid ValueError
+        for key, value in headers
+    }
+    str_headers["Authorization"] = f"Bearer {api_key}"
+    return lambda: requests.request(
         method=method,
         url=url,
-        headers={
-            **dict(headers),
-            "Authorization": f"Bearer {api_key}",
-        },
+        headers=str_headers,
         data=data,
-        timeout=timeout,
+        timeout=timeout
     )
 
-# Push to Grafana Cloud Pushgateway
+# Push metrics
 push_to_gateway(
     gateway=metrics_url,
     job="lrc_test",
