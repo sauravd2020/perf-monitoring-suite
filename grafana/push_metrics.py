@@ -9,7 +9,7 @@ TOKEN = os.getenv("GRAFANA_CLOUD_API_KEY")
 if not GATEWAY or not TOKEN:
     raise ValueError("Both GRAFANA_CLOUD_METRICS_URL and GRAFANA_CLOUD_API_KEY must be set")
 
-# Custom handler for Bearer Auth
+# Correct handler without headers_override
 def bearer_auth_handler(url, method, timeout, headers, data):
     headers_dict = {key: value for key, value in headers}
     headers_dict["Authorization"] = f"Bearer {TOKEN}"
@@ -20,7 +20,6 @@ def bearer_auth_handler(url, method, timeout, headers, data):
         headers=headers_dict,
         timeout=timeout
     )
-    # Raise error if request failed
     response.raise_for_status()
 
 # Create a registry and metric
