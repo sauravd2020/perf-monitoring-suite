@@ -1,10 +1,10 @@
-<<<<<<< HEAD
+
 from prometheus_client import CollectorRegistry, Gauge, push_to_gateway
 import random
 import os
 
 # Grafana Cloud
-GATEWAY = "https://prometheus-prod-13-prod-ap-south-1.grafana.net/api/prom/push"
+GATEWAY = "https://prometheus-prod-43-prod-ap-south-1.grafana.net/api/prom/push"
 TOKEN = os.getenv("GRAFANA_CLOUD_API_TOKEN")
 
 registry = CollectorRegistry()
@@ -25,7 +25,7 @@ push_to_gateway(
     )
 )
 print("✅ Metrics pushed")
-=======
+
 import os
 from prometheus_client import CollectorRegistry, Gauge, push_to_gateway
 import requests
@@ -62,4 +62,4 @@ push_to_gateway(
     registry=registry,
     handler=bearer_auth_handler
 )
->>>>>>> b8f6f97c0abb98f6b57229ecc2105bda031605ff
+ b8f6f97c0abb98f6b57229ecc2105bda031605ff
