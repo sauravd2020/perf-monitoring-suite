@@ -1,37 +1,35 @@
 import os
+import time
 import requests
 from prometheus_client import CollectorRegistry, Gauge, push_to_gateway
 
-# Get environment variables
-metrics_url = os.environ["GRAFANA_CLOUD_METRICS_URL"]
-api_key = os.environ["GRAFANA_CLOUD_API_KEY"]
+# Environment variables or defaults
+GATEWAY = os.getenv("METRICS_URL", "https://your-prometheus-endpoint/api/v1/push")
+BEARER_TOKEN = os.getenv("GRAFANA_CLOUD_TOKEN", "your-token")
 
-print("Pushing metrics to:", metrics_url)
-
-# Create Prometheus registry and metric
 registry = CollectorRegistry()
-g = Gauge('sample_lrc_test_latency_seconds', 'LRC latency in seconds', registry=registry)
-g.set(1.23)  # Example value
 
-# Define a valid HTTP handler
-def bearer_auth_handler(url, method, timeout, headers, data):
-    str_headers = {
-        key: str(value)  # Convert everything to string to avoid ValueError
-        for key, value in headers
-    }
-    str_headers["Authorization"] = f"Bearer {api_key}"
-    return lambda: requests.request(
+# Define a sample metric
+g = Gauge('app_response_time_seconds', 'Response time in seconds', registry=registry)
+g.set(0.42)
+
+# Define a handler that returns a callable (to fix the error)
+def bearer_handler(url, method, timeout, headers, data):
+    response = requests.request(
         method=method,
         url=url,
-        headers=str_headers,
-        data=data,
-        timeout=timeout
+        timeout=timeout,
+        headers={k: v for (k, v) in headers} | {'Authorization': f"Bearer {BEARER_TOKEN}"},
+        data=data
     )
+    return lambda: response  # This matches what `push_to_gateway` expects
 
-# Push metrics
+# Push the metrics
 push_to_gateway(
-    gateway=metrics_url,
-    job="lrc_test",
+    GATEWAY,
+    job="perf-monitoring-suite",
     registry=registry,
-    handler=bearer_auth_handler
+    handler=bearer_handler,
 )
+
+print(f"Pushed metrics to: {GATEWAY}")
