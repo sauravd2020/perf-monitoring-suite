@@ -7,21 +7,21 @@ GATEWAY = os.getenv("GRAFANA_CLOUD_METRICS_URL")
 TOKEN = os.getenv("GRAFANA_CLOUD_API_KEY")
 
 if not GATEWAY or not TOKEN:
-    raise ValueError("Both METRICS_URL and GRAFANA_CLOUD_TOKEN must be set")
+    raise ValueError("Both GRAFANA_CLOUD_METRICS_URL and GRAFANA_CLOUD_API_KEY must be set")
 
 # Custom handler for Bearer Auth
 def bearer_auth_handler(url, method, timeout, headers, data):
+    headers_dict = {key: value for key, value in headers}
+    headers_dict["Authorization"] = f"Bearer {TOKEN}"
     response = requests.request(
-        method,
-        url,
+        method=method,
+        url=url,
         data=data,
-        headers={key: value for key, value in headers},
-        timeout=timeout,
-        auth=None,
-        headers_override={"Authorization": f"Bearer {TOKEN}"}
+        headers=headers_dict,
+        timeout=timeout
     )
-    # Return a function to match expected callable signature
-    return lambda: response.raise_for_status()
+    # Raise error if request failed
+    response.raise_for_status()
 
 # Create a registry and metric
 registry = CollectorRegistry()
